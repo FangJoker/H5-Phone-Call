@@ -45,7 +45,7 @@ function GetUrlParam(paraName) {
 	//判断当前浏览器是否支持
 	WebSocket
 	if ('WebSocket' in window) {
-		websocket = new WebSocket("ws://localhost:8080/liaoxue/websocket/"+userId);
+		websocket = new WebSocket("ws://localhost:8080/demo/websocket/"+userId);
 	} else {
 		alert('Not support websocket')
 	}
@@ -104,7 +104,7 @@ function GetUrlParam(paraName) {
 	function send() {
 	
 		$.ajax({
-          url: "http://localhost:8080/liaoxue/app/createTrtcRoom/"+userId+"/1234",
+          url: "http://localhost:8080/demo/app/createTrtcRoom/"+userId+"/1234",
           type : 'json',
           method : 'GET',
           success:function(data){   
@@ -119,7 +119,7 @@ function GetUrlParam(paraName) {
 				
 				var newWindow=window.open();
 					setTimeout(function(){
-					newWindow.location="http://localhost:8080/liaoxue/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
+					newWindow.location="http://localhost:8080/demo/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
 					}, 500);
 							
            }
