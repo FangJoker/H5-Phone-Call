@@ -87,7 +87,7 @@ public class WebSocketTest {
 						res.put("from", j.get("from"));
 						res.put("type","invite" );
 						res.put("roomId", j.get("roomId"));
-						res.put("url", "localhost:8080/liaoxue/app/getInRoom/"+j.get("to")+"/"+j.get("roomId")+"/"+j.get("key"));
+						res.put("url", "localhost:8080/demo/app/getInRoom/"+j.get("to")+"/"+j.get("roomId")+"/"+j.get("key"));
 						String url ="<a " +"target="+'"'+"blank"+'"' +  "href="+'"'+res.get("url")+'"'+">点击进入通话</a>"; //进入通话超链接
 						res.put("index", url);
 						logger.info("封装:"+res.toJSONString());
