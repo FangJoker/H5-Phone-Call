@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
-import org.xml.sax.InputSource;
 
 import com.alibaba.fastjson.JSONObject;
 import com.sun.istack.internal.logging.Logger;
@@ -85,7 +84,7 @@ public class AppController {
 	
 	/**发起通话
 	 * @param userid 用户唯一标识 roomid 房间号
-	 * @return modelAndView 渲染试图层
+	 * @return modelAndView 渲染视图层
 	 * **/
 	@ResponseBody
 	@RequestMapping(value = "/createTrtcRoom/{userid}/{roomid}" ,method = RequestMethod.GET)
