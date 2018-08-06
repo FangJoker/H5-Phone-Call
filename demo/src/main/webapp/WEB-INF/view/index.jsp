@@ -16,7 +16,29 @@
 </body>
  <script src="http://www.qiaohserver.cn/YokerWechat/public/js/jquery.min.js" type="text/javascript" charset="utf-8"></script>
 <script>
-
+	
+//js中格式化日期，调用的时候直接：new Date().format("yyyy-MM-dd hh:mm:ss")
+	Date.prototype.format = function(fmt) {
+	     var o = {
+	        "M+" : this.getMonth()+1,                 //月份 
+	        "d+" : this.getDate(),                    //日 
+	        "h+" : this.getHours(),                   //小时 
+	        "m+" : this.getMinutes(),                 //分 
+	        "s+" : this.getSeconds(),                 //秒 
+	        "q+" : Math.floor((this.getMonth()+3)/3), //季度
+	        "S"  : this.getMilliseconds()             //毫秒 
+	   	}; 
+	    if(/(y+)/.test(fmt)) {
+	            fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length)); 
+	    }
+	    for(var k in o) {
+	       if(new RegExp("("+ k +")").test(fmt)){
+	            fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+	         }
+	     }
+	    return fmt; 
+	}    
+	
 //获取路由参数
 function GetUrlParam(paraName) {
 		var url = document.location.toString();
@@ -39,8 +61,69 @@ function GetUrlParam(paraName) {
 		}
 	}
     
+//重新连接websocket
+	function reconnect(url) {
+
+	    if(lockReconnect) return;
+
+	    lockReconnect = true;
+
+	    //没连接上会一直重连，设置延迟避免请求过多
+
+	    setTimeout(function () {
+
+	        console.info("尝试重连..." + new Date().format("yyyy-MM-dd hh:mm:ss"));
+
+	        createWebSocket(url);
+
+	        lockReconnect = false;
+
+	    }, 5000);
+
+	}
+	//创建websocket
+	function createWebSocket(url) {
+	    try {
+
+	        websocket = new WebSocket(url);
+
+
+	    } catch (e) {
+	        reconnect(url);
+	    }
+	}
+	
     var userId = GetUrlParam("userid"); //获取当前用户id
-	var websocket = null;
+    var websocket = null;   //websocket 实例
+    var lockReconnect = false;//避免重复连接
+    
+	//心跳检测,每30s心跳一次
+	var heartCheck = {
+	    timeout: 30000,
+	    timeoutObj: null,
+	    serverTimeoutObj: null,
+	    reset: function(){
+	        clearTimeout(this.timeoutObj);
+	        clearTimeout(this.serverTimeoutObj);
+	        return this;
+	    },
+	    start: function(){
+	        var self = this;
+	        this.timeoutObj = setTimeout(function(){
+	            //这里发送一个心跳，后端收到后，返回一个心跳消息，
+	            //onmessage拿到返回的心跳然后重置setTimeOut就说明连接正常
+	            var check = "{" + " \"from\":\"" + userId + "\"," + " \"time\":\""+new Date().format("yyyy-MM-dd hh:mm:ss")+"\","
+				+ " \"type\":\"heartCheck"+"\""+"}";
+				console.log(check);
+	            websocket.send(check);
+	            console.info("客户端发送心跳：" + new Date().format("yyyy-MM-dd hh:mm:ss"));
+	            self.serverTimeoutObj = setTimeout(function(){//如果超过一定时间还没重置，说明后端主动断开了
+	                websocket.close();//如果onclose会执行reconnect，我们执行ws.close()就行了.如果直接执行reconnect 会触发onclose导致重连两次
+	            }, self.timeout)
+	        }, this.timeout)
+	    }
+	}
+	
 	
 	//判断当前浏览器是否支持
 	WebSocket
@@ -59,20 +142,27 @@ function GetUrlParam(paraName) {
 	}
 	//接收到消息的回调方法
 	websocket.onmessage = function() {
+ 	  var response = JSON.parse(event.data);  //json化后台获取的数据
+       
+		//如果获取到消息，心跳检测重置
+	       if(response.type=="heartCheck"){
+		   heartCheck.reset().start();
+		   console.log("服务端心跳:"+response.msg);
+	       }
 
-	   var response = JSON.parse(event.data);
-		if(response.type == "invite"){
-		     document.getElementById('reject').innerHTML ="<button onclick="+'"'+"reject("+"'"+response.from+"'" + ","+ "'"+response.roomId+"'"+")"+'"'+" >拒绝接听</button>"  + '<br/>';
-		     setMessageInnerHTML(response.msg);
-		     setMessageInnerHTML(response.index);
+		   if(response.type == "invite"){  //通话邀请
+			     document.getElementById('reject').innerHTML ="<button onclick="+'"'+"reject("+"'"+response.from+"'" + ","+ "'"+response.roomId+"'"+")"+'"'+" >拒绝接听</button>"  + '<br/>';
+			     setMessageInnerHTML(response.msg);
+			     setMessageInnerHTML(response.index);
+
+			}
+
+			if(response.type== "reject"){  //拒绝通话
+			   setMessageInnerHTML(response.msg);
+			   websocket.close();
+			}
+			//setMessageInnerHTML(event.data);
 	
-		}
-		
-		if(response.type== "reject"){
-		   setMessageInnerHTML(response.msg);
-		   websocket.close();
-		}
-		//setMessageInnerHTML(event.data);
 		
 	}
 	//连接关闭的回调方法 
@@ -127,6 +217,9 @@ function GetUrlParam(paraName) {
       });
 		
 	}
+	
+	
+	
 	
 </script>
 </html>
