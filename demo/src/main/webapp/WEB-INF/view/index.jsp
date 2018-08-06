@@ -189,27 +189,24 @@ function GetUrlParam(paraName) {
 	//关闭连接 
 	function closeWebSocket() {
 		websocket.close();
-	}
 	//发送消息 到websocket
 	function send() {
-	
+	 var to = document.getElementById('text').value;  //被通话者
+	 var time = new Date().getTime().toString();	
 		$.ajax({
-          url: "http://localhost:8080/demo/app/createTrtcRoom/"+userId+"/1234",
+          url: "https://www.zhuyoulife.com:8448/liaoxueChat/app/createTrtcRoom/"+userId+"/"+time.substring(time.length-4),
           type : 'json',
           method : 'GET',
           success:function(data){   
-             console.log(data);
-           
-               var to = document.getElementById('text').value;  //被通话者
+             console.log(data);   
                var type = "invite";
 				var post = "{" + " \"from\":\"" + userId + "\"," + " \"to\":\""+to+"\","
-				+ " \"roomId\":\""+data.roomId+"\"," +" \"type\":\"" + type+"\","+ " \"key\":\""+data.privateMapKey+"\"" + " }"
+				+ " \"roomId\":\""+data.roomId+"\"," +" \"type\":\"" + type+"\","+ " \"key\":\""+data.privateMapKey+"\"" + " }";
 				websocket.send(post);
 				console.log(post);
-				
 				var newWindow=window.open();
 					setTimeout(function(){
-					newWindow.location="http://localhost:8080/demo/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
+					newWindow.location="https://www.qiaohserver.cn/liaoxueChat/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
 					}, 500);
 							
            }
