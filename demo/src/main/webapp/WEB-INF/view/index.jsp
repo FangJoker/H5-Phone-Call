@@ -63,12 +63,12 @@ function GetUrlParam(paraName) {
 		}
 	}
 	
-//发送消息 到websocket
+//发送通话消息 到websocket
 	function send() {
 	 var to = document.getElementById('text').value;  //被通话者
 	 var time = new Date().getTime().toString();	
 		$.ajax({
-          url: "https://xxxxxx/demo/app/createTrtcRoom/"+userId+"/"+time.substring(time.length-4),
+          url: "https://www.xxx/demot/app/createTrtcRoom/"+userId+"/"+time.substring(time.length-4),
           type : 'json',
           method : 'GET',
           success:function(data){   
@@ -80,10 +80,33 @@ function GetUrlParam(paraName) {
 				console.log(post);
 				var newWindow=window.open();
 					setTimeout(function(){
-					var url =  "https://xxxxx/demo/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
+					var url =  "https://www.talklearn.net:8448/liaoxueChat/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
 					newWindow.location= url;
 					}, 500);
 							
+           }
+
+      });
+		
+	}
+	
+	//发送消息 到websocket
+	function sendMsg() {
+	 var to = document.getElementById('text').value;  //接收者
+	 var content = document.getElementById('msg').value;  //内容
+	 var time = new Date().getTime().toString();	
+		$.ajax({
+          url: "https://www.xxx/demo/webService/postMessage?sender="+userId+"&receiver="+to+"&content="+content+"type=2",
+          type : 'json',
+          method : 'GET',
+          success:function(data){   
+             console.log(data);   
+               var type = "message";
+			   var post = "{" + " \"from\":\"" + userId + "\"," + " \"to\":\""+to+"\","
+				+ " \"type\":\"" + type+"\","+ " \"content\":\""+content+"\"" + " }";
+				websocket.send(post);
+				//这里把userId 转成昵称
+				 setChatInnerHTML(userID+":"+new Date().format("yyyy-MM-dd hh:mm:ss")+"</br>"+content);
            }
 
       });
@@ -124,8 +147,8 @@ function GetUrlParam(paraName) {
     var userId = GetUrlParam("userid"); //获取当前用户id
 	var websocket = null;   //websocket 实例
 	var lockReconnect = false;//避免重复连接
-	var wssUrl = "wss://www.xxxxx./demo/websocket/"+userId;   //websocket server地址
-	//var wssUrl = "ws://localhost:8080/liaoxueChat/websocket/"+userId;   //websocket server地址
+	var wssUrl = "wss://www.xxx/demo/websocket/"+userId;   //websocket server地址
+	
 	
 	//心跳检测,每30s心跳一次
 	var heartCheck = {
@@ -199,9 +222,17 @@ function GetUrlParam(paraName) {
 		   websocket.close();
 		}
 		
-		if(response.type== "repeat"){  //拒绝通话
-			 console.log("重复登陆"+response.msg);
+		if(response.type== "repeat"){  //重复登录
+			 console.log(response.msg);
 			   websocket.close();
+		}
+		
+		if(response.type== "message"){  //聊天消息推送
+			 console.log(response.msg);
+			 console.log("内容:"+response.content);
+			 //这里的response.from 是用户ID，应该用ID来换取昵称
+			 setChatInnerHTML(response.from+":"+new Date().format("yyyy-MM-dd hh:mm:ss")+"</br>"+response.content);
+			  
 		}
 		//setMessageInnerHTML(event.data);
 		
@@ -219,6 +250,10 @@ function GetUrlParam(paraName) {
 		document.getElementById('message').innerHTML += innerHTML + '<br/>';
 	}
 	
+	//将聊天消息显示在网页上
+	function setChatInnerHTML(innerHTML) {
+		document.getElementById('chat').innerHTML += innerHTML + '<br/>';
+	}
 	//拒绝通话
 	function reject(to, roomId){
 	        var type ="reject";
