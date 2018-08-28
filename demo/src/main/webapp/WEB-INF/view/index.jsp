@@ -106,7 +106,7 @@ function GetUrlParam(paraName) {
 				+ " \"type\":\"" + type+"\","+ " \"content\":\""+content+"\"" + " }";
 				websocket.send(post);
 				//这里把userId 转成昵称
-				 setChatInnerHTML(userID+":"+new Date().format("yyyy-MM-dd hh:mm:ss")+"</br>"+content);
+				 setChatInnerHTML(userId+":"+new Date().format("yyyy-MM-dd hh:mm:ss")+"</br>"+content);
            }
 
       });
