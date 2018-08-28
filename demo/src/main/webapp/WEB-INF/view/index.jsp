@@ -17,6 +17,8 @@
  <script src="http://www.qiaohserver.cn/YokerWechat/public/js/jquery.min.js" type="text/javascript" charset="utf-8"></script>
 <script>
 	
+ 
+
 //js中格式化日期，调用的时候直接：new Date().format("yyyy-MM-dd hh:mm:ss")
 	Date.prototype.format = function(fmt) {
 	     var o = {
@@ -60,8 +62,34 @@ function GetUrlParam(paraName) {
 			return "";
 		}
 	}
-    
-//重新连接websocket
+	
+//发送消息 到websocket
+	function send() {
+	 var to = document.getElementById('text').value;  //被通话者
+	 var time = new Date().getTime().toString();	
+		$.ajax({
+          url: "https://xxxxxx/demo/app/createTrtcRoom/"+userId+"/"+time.substring(time.length-4),
+          type : 'json',
+          method : 'GET',
+          success:function(data){   
+             console.log(data);   
+               var type = "invite";
+				var post = "{" + " \"from\":\"" + userId + "\"," + " \"to\":\""+to+"\","
+				+ " \"roomId\":\""+data.roomId+"\"," +" \"type\":\"" + type+"\","+ " \"key\":\""+data.privateMapKey+"\"" + " }";
+				websocket.send(post);
+				console.log(post);
+				var newWindow=window.open();
+					setTimeout(function(){
+					var url =  "https://xxxxx/demo/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
+					newWindow.location= url;
+					}, 500);
+							
+           }
+
+      });
+		
+	}
+	//重新连接websocket
 	function reconnect(url) {
 
 	    if(lockReconnect) return;
@@ -94,12 +122,14 @@ function GetUrlParam(paraName) {
 	}
 	
     var userId = GetUrlParam("userid"); //获取当前用户id
-    var websocket = null;   //websocket 实例
-    var lockReconnect = false;//避免重复连接
-    
+	var websocket = null;   //websocket 实例
+	var lockReconnect = false;//避免重复连接
+	var wssUrl = "wss://www.xxxxx./demo/websocket/"+userId;   //websocket server地址
+	//var wssUrl = "ws://localhost:8080/liaoxueChat/websocket/"+userId;   //websocket server地址
+	
 	//心跳检测,每30s心跳一次
 	var heartCheck = {
-	    timeout: 30000,
+	    timeout: 10000,
 	    timeoutObj: null,
 	    serverTimeoutObj: null,
 	    reset: function(){
@@ -124,45 +154,56 @@ function GetUrlParam(paraName) {
 	    }
 	}
 	
+
+	//判断当前浏览器是否支持WebSocket
 	
-	//判断当前浏览器是否支持
-	WebSocket
 	if ('WebSocket' in window) {
-		websocket = new WebSocket("ws://localhost:8080/demo/websocket/"+userId);
+		websocket = new WebSocket(wssUrl);
 	} else {
 		alert('Not support websocket')
 	}
 	//连接发生错误的回调方法 
 	websocket.onerror = function() {
-		setMessageInnerHTML("error");
+		setMessageInnerHTML("传输异常");
+		//重新连接
+		reconnect(wssUrl);
+		
 	};
 	//连接成功建立的回调方法 
 	websocket.onopen = function(event) {
-		setMessageInnerHTML("与服务器建立连接");
+	     //心跳检测重置
+        heartCheck.reset().start();
+	   	setMessageInnerHTML("与服务器建立连接");
 	}
-	//接收到消息的回调方法
-	websocket.onmessage = function() {
- 	  var response = JSON.parse(event.data);  //json化后台获取的数据
-       
-		//如果获取到消息，心跳检测重置
-	       if(response.type=="heartCheck"){
-		   heartCheck.reset().start();
-		   console.log("服务端心跳:"+response.msg);
-	       }
-
-		   if(response.type == "invite"){  //通话邀请
-			     document.getElementById('reject').innerHTML ="<button onclick="+'"'+"reject("+"'"+response.from+"'" + ","+ "'"+response.roomId+"'"+")"+'"'+" >拒绝接听</button>"  + '<br/>';
-			     setMessageInnerHTML(response.msg);
-			     setMessageInnerHTML(response.index);
-
-			}
-
-			if(response.type== "reject"){  //拒绝通话
-			   setMessageInnerHTML(response.msg);
-			   websocket.close();
-			}
-			//setMessageInnerHTML(event.data);
 	
+	//接收到消息的回调方法
+	websocket.onmessage = function(event) {
+       
+       var response = JSON.parse(event.data);  //json化后台获取的数据
+       
+        //如果获取到消息，心跳检测重置
+       if(response.type=="heartCheck"){
+           heartCheck.reset().start();
+           console.log("服务端心跳:"+response.msg);
+       }
+       
+	   if(response.type == "invite"){  //通话邀请
+		     document.getElementById('reject').innerHTML ="<button onclick="+'"'+"reject("+"'"+response.from+"'" + ","+ "'"+response.roomId+"'"+")"+'"'+" >拒绝接听</button>"  + '<br/>';
+		     setMessageInnerHTML(response.msg);
+		     setMessageInnerHTML(response.index);
+	
+		}
+		
+		if(response.type== "reject"){  //拒绝通话
+		   setMessageInnerHTML(response.msg);
+		   websocket.close();
+		}
+		
+		if(response.type== "repeat"){  //拒绝通话
+			 console.log("重复登陆"+response.msg);
+			   websocket.close();
+		}
+		//setMessageInnerHTML(event.data);
 		
 	}
 	//连接关闭的回调方法 
@@ -184,37 +225,16 @@ function GetUrlParam(paraName) {
 	    	var post = "{" + " \"from\":\"" + userId + "\"," + " \"to\":\""+to+"\","
 				+ " \"roomId\":\""+roomId+"\"," +" \"type\":\"" + type+"\","+ "  }";
 			console.log(post);
-				websocket.send(post);
+		    websocket.send(post);
 	} 
 	//关闭连接 
 	function closeWebSocket() {
 		websocket.close();
-	//发送消息 到websocket
-	function send() {
-	 var to = document.getElementById('text').value;  //被通话者
-	 var time = new Date().getTime().toString();	
-		$.ajax({
-          url: "https://www.zhuyoulife.com:8448/liaoxueChat/app/createTrtcRoom/"+userId+"/"+time.substring(time.length-4),
-          type : 'json',
-          method : 'GET',
-          success:function(data){   
-             console.log(data);   
-               var type = "invite";
-				var post = "{" + " \"from\":\"" + userId + "\"," + " \"to\":\""+to+"\","
-				+ " \"roomId\":\""+data.roomId+"\"," +" \"type\":\"" + type+"\","+ " \"key\":\""+data.privateMapKey+"\"" + " }";
-				websocket.send(post);
-				console.log(post);
-				var newWindow=window.open();
-					setTimeout(function(){
-					newWindow.location="https://www.qiaohserver.cn/liaoxueChat/app/createRoom?userId="+data.userId+"&roomId="+data.roomId+"&userSig="+data.userSig+"&key="+data.privateMapKey;
-					}, 500);
-							
-           }
-
-      });
-		
 	}
 	
+	
+	
+
 	
 	
 	
