@@ -96,7 +96,7 @@ function GetUrlParam(paraName) {
 	 var content = document.getElementById('msg').value;  //内容
 	 var time = new Date().getTime().toString();	
 		$.ajax({
-          url: "https://www.xxx/demo/webService/postMessage?sender="+userId+"&receiver="+to+"&content="+content+"type=2",
+          url: "https://www.xxx/demo/webService/postMessage?sender="+userId+"&receiver="+to+"&content="+content+"&type=2",
           type : 'json',
           method : 'GET',
           success:function(data){   
